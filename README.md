@@ -1,242 +1,87 @@
-# SAATHI — Elder-First Care Coordination
+# SAATHI
 
-**SAATHI connects older adults, family members, and caregivers through medication management, simple care check-ins, shared responsibility, and a common care history.**
+**The care circle that never lets an elder go unnoticed.**
 
-> **Project:** CATALYST — Solo AI Hackathon 2026  
-> **Problem statement:** Elderly Care & Medication Management Platform  
-> **Repository:** [Anshum-Sahoo/Saathi](https://github.com/Anshum-Sahoo/Saathi)  
-> **Firebase project:** `saathi-f6a7e`
-
----
+SAATHI helps older adults, family members, and caregivers coordinate everyday care. Instead of treating a reminder as proof or leaving a help request unanswered, it gives the elder clear choices and makes responsibility visible to the care circle.
 
 ## The problem
 
-Elderly care is not only about remembering medication. It also depends on communication between the older adult, family members, and caregivers. A reminder can be acknowledged without anyone knowing whether help is needed, who is responding, or what happened afterwards.
+Medication routines can be missed, while care information is scattered across calls and messages. A reminder alone does not tell a family whether an older adult needs more time, wants help, or has someone responding. SAATHI brings those moments into one shared, permission-aware space.
 
-SAATHI aims to make care coordination more visible and accountable while keeping the older adult involved in decisions about their care.
+## How it works
 
-## What SAATHI does
+- **Elder:** uses a paired device and a simple, accessible daily routine screen. They can report “I'm okay,” ask for 15 more minutes, or request help.
+- **Caregiver:** creates a care circle, manages permitted medication schedules and appointments, and checks due reminders manually.
+- **Family:** joins by invitation, sees information allowed by the elder's sharing permissions, and can coordinate around visible care requests.
 
-### Medication management
+### A care journey
 
-Caregivers with the appropriate permissions can add, edit, pause, and discontinue medication schedules. The application supports scheduled times, applicable days, date ranges, and the care circle's time zone. Historical dose records are retained when a medication is paused or discontinued.
+1. A caregiver creates an account and sets up a care circle.
+2. They invite family members or create a one-time code to pair the elder's device.
+3. The elder sets a separate PIN and gives consent to sharing. Circle membership and permissions determine what each person can see and change.
+4. The caregiver maintains medication routines. The elder reports a response or asks for help from the daily screen.
+5. Authorized helpers receive in-app notifications and can claim a help alert. The circle can see who took responsibility and what outcome was recorded.
+6. Care Memory keeps a circle-scoped history for follow-up and handoffs.
 
-### Care Signals
+## What is implemented
 
-The elder-facing experience is designed around three clear actions:
+- **Care Circle and access:** Firebase-authenticated adult accounts, invitation-based membership, server-resolved roles and permissions, and member/device management.
+- **Elder pairing and consent:** one-time device pairing, elder PIN protection, and elder-controlled care-sharing consent.
+- **Medication routines:** add, edit, pause, and discontinue schedules; timezone-aware dose records; historical dose snapshots.
+- **Care Signals:** elder-reported “I'm okay,” “Not yet,” and “I need help” actions. A response is not proof that medicine was taken; no response remains unconfirmed.
+- **Shared responsibility:** help alerts can be claimed transactionally by an authorized helper, then resolved with a recorded outcome.
+- **In-app notifications and appointments:** appointment coordination and a caregiver-triggered reminder check. Notifications are stored in the app; continuous or exact-time delivery is not guaranteed.
+- **Care Memory:** an attributed timeline of relevant circle actions, subject to role permissions.
+- **English/Hindi and accessible Elder Mode:** larger controls and text sizing on key care screens, with English and Hindi interface support.
+- **Demo mode:** `/demo` uses fictional browser-local data and simulated time. It does not write to Firebase or synchronize between devices.
 
-- **I'm okay** — records the elder's self-reported response.
-- **Not yet** — snoozes the reminder for 15 minutes.
-- **I need help** — creates a help request with a reason such as medicine finished, feeling unwell, or requesting a call.
+## Privacy and safety
 
-A self-reported response is not proof that medication was ingested. No response remains **unconfirmed**; it is not automatically treated as a missed dose.
+Adult sign-in uses Firebase Authentication; the server exchanges the verified identity for an HttpOnly SAATHI session. Firebase Admin performs privileged Firestore operations on the server. The browser does not access Firestore directly, and the repository rules deny direct client reads and writes. APIs derive circle scope and permissions from the server session.
 
-### Shared help alerts — “I've Got It”
-
-Authorized caregivers and family members can view help requests. A member can claim an alert, making the responsible person visible to the rest of the care circle. The claimant can record an outcome and resolve the request. The real Firebase implementation uses a transaction for alert ownership.
-
-### Care Memory
-
-Care Memory provides a shared timeline of relevant actions, including medication changes, reported responses, snoozes, help requests, claims, and resolutions. It is intended to make caregiver handoffs easier.
-
-### Appointments and family coordination
-
-The application includes appointment workflows for creating, editing, cancelling, and completing appointments, assigning a responsible family member, and acknowledging responsibility. Appointment notifications are generated through the reminder-processing flow.
-
-### Notifications and reminders
-
-SAATHI supports persistent in-app notifications and a manual, authorized **Check reminders now** / reminder-processing workflow. Processing is designed to avoid duplicate records and to respect medication schedules and appointment changes.
-
-**Automatic background delivery is not currently guaranteed.** Email, SMS, WhatsApp, and browser push delivery are not claimed as implemented.
-
-### English and Hindi
-
-The interface includes English and Hindi dictionaries and a language preference intended to persist across navigation and refreshes. The application also includes elder-focused layout improvements such as larger text and touch targets.
-
-### Demo mode
-
-The `/demo` experience is an isolated demonstration using fictional, browser-stored data. It supports caregiver, elder, and family views, role switching, simulated time, reminder generation, and help claiming. Demo actions are not real Firebase writes and are not shared across different browsers or devices.
-
----
-
-## Product principles and safety
-
-- **Elder autonomy:** the elder is a participant in the care circle, not merely an object being monitored.
-- **Consent and access control:** access is based on care-circle membership, roles, and permissions.
-- **Accountability:** help requests can have a visible owner and recorded outcome.
-- **Transparent status:** reported, snoozed, and unconfirmed states are distinct.
-- **Privacy:** privileged Firestore operations are performed server-side through Firebase Admin. Firestore client rules are intended to deny direct client reads and writes.
-- **No diagnosis:** SAATHI is a care-coordination tool, not a medical device or emergency-response service. It does not diagnose symptoms, prescribe treatment, or determine whether a medication is clinically appropriate. In an emergency, contact local emergency services or a trusted person directly.
+SAATHI supports care coordination. It does not diagnose, prescribe, determine whether a medicine is clinically appropriate, or provide emergency response. Care Signals are reports from the elder, not medical verification. In an emergency, contact local emergency services or a trusted person directly.
 
 ## Technology
 
-- **Frontend and application:** Next.js App Router, React, TypeScript, Tailwind CSS
-- **Backend:** Next.js Route Handlers
-- **Authentication:** Firebase Authentication (Email/Password) with SAATHI server-side sessions
-- **Database:** Cloud Firestore
-- **Server-side Firebase access:** Firebase Admin SDK
-- **Hosting target:** Vercel
-- **Tests:** Node.js test runner and the project's existing test suite
+Next.js App Router, React, TypeScript, Tailwind CSS, Firebase Authentication, Cloud Firestore, and Firebase Admin SDK. The intended zero-payment hosting target is Vercel Hobby with Firebase Spark; free-tier limits and availability are not guaranteed.
 
-The project is designed around Firebase Spark and Vercel Hobby usage. Free-tier limits and provider terms can change; no absolute cost or delivery guarantee is made.
+## Screenshots
 
----
+Screenshots are not included yet.
 
-## Getting started
+<!-- Add verified screenshots of Elder Mode, Care Circle, and the demo here. -->
 
-### Requirements
+## Run locally
 
-- Node.js compatible with the project's `package.json` and lockfile
-- npm
-- A Firebase project for real authenticated use
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Anshum-Sahoo/Saathi.git
-cd Saathi
-```
-
-### 2. Install dependencies
+Requires Node.js compatible with `package.json` and npm.
 
 ```bash
 npm ci
-```
-
-### 3. Configure environment variables
-
-Create `.env.local` in the project root. Do not commit this file.
-
-```env
-# Firebase Web app configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=your-web-api-key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_APP_ID=your-web-app-id
-
-# Firebase Admin SDK — server-side only
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account-email
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_CONTENT\n-----END PRIVATE KEY-----\n"
-
-# Independent, high-entropy application secrets
-ELDER_PIN_PEPPER=generate-a-unique-random-secret
-PAIRING_CODE_PEPPER=generate-a-different-unique-random-secret
-
-# Exact origin used by this local application
-APP_BASE_URL=http://localhost:3000
-```
-
-Use values from the **same Firebase project** for the Web app and Admin SDK. `FIREBASE_PRIVATE_KEY` must be the `private_key` value from the downloaded service-account JSON, formatted with newline separators as expected by the Admin initializer.
-
-Generate the two peppers independently. For example, run this command twice and use a different output each time:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-Never place the Admin private key or peppers in `NEXT_PUBLIC_` variables. Never upload a service-account JSON file, `.env.local`, private key, or token to GitHub or share it in issue reports.
-
-### 4. Configure Firebase
-
-In the Firebase Console for your project:
-
-1. Register a Web app and copy its Web configuration into `.env.local`.
-2. Enable **Authentication → Email/Password** for adult caregiver/family accounts.
-3. Create a **Cloud Firestore** database in Native mode. Choose its location carefully; a Firestore database location cannot be changed after creation.
-4. Configure Firebase Admin credentials for the server.
-5. Review and deploy the repository's Firestore rules and indexes using the Firebase CLI and the project's Firebase configuration.
-6. Add the local host and deployed application domain to Firebase Authentication's authorized domains when required.
-
-Keep Firestore client access locked down. The application is designed for server-side Firestore access through Firebase Admin; do not make collections publicly readable or writable to get the app working.
-
-### 5. Run locally
-
-```bash
+Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Open the local URL printed by Next.js (normally `http://localhost:3000`). If you use a different port, set `APP_BASE_URL` to that exact origin and restart the server.
+Fill `.env.local` with the names in `.env.example` before testing real authentication or care-circle APIs. Keep it private and never commit it. Firebase Admin values and the PIN/pairing peppers are server-only. See [Firebase setup](docs/FIREBASE_SETUP.md). The fictional demo can be explored at `http://localhost:3000/demo` without treating it as live Firebase behavior.
 
-The demo is available at:
-
-```text
-/demo
-```
-
-The demo uses fictional local data. It is not evidence that Firebase Authentication or Firestore is connected.
-
----
-
-## Useful commands
+## Checks
 
 ```bash
-# Run tests
 npm run test
-
-# Lint
 npm run lint
-
-# TypeScript check
 npm run typecheck
-
-# Production build
 npm run build
-
-# Run the production build locally (after building)
-npm run start
 ```
 
-## Application areas
+The current suite contains 27 tests for authentication helpers, permissions, scheduling, and demo workflows. These tests do not replace a full live Firebase smoke test.
 
-| Area | Purpose |
-|---|---|
-| `/login` | Adult account login |
-| `/` | Application landing / entry page |
-| `/caregiver` | Caregiver workspace |
-| `/elder` | Elder medication and Care Signals experience |
-| `/family` | Family view and coordination |
-| `/care-circle` | Care-circle setup and member/device management |
-| `/pair-device` | Elder device pairing flow |
-| `/demo` | Fictional, isolated product demonstration |
-| `/api/health` | Application health endpoint |
+## Status and limitations
 
-Route availability and access depend on the current application configuration and authentication state.
+Local tests, lint, typecheck, and production build have passed in the isolated verification copy. Firebase Admin connectivity and selected authentication/pairing operations have been verified separately. The live after-fix behavior of Care Memory, Notifications, and Doses has not been confirmed. Production Firebase environment configuration and end-to-end production behavior must be verified before claiming those integrations work.
 
----
+Reminder processing is caregiver-triggered; there is no guaranteed background schedule. Email, SMS, WhatsApp, browser push, Gemini prescription scanning, and voice logging are not implemented in this MVP. Demo data is fictional and local to the browser.
 
-## Verification status and known limitations
+## Project
 
-The project has undergone local implementation and stabilization. The latest reported verification in the isolated runtime copy was:
-
-- **27 automated tests passed**.
-- ESLint passed.
-- TypeScript passed.
-- Production build passed.
-- `/api/health` returned HTTP 200.
-- `/demo` returned HTTP 200 and was reviewed.
-- A separate Firebase Admin diagnostic successfully exchanged Google credentials, initialized Firebase Admin Auth and Firestore, and completed a read-only Firestore probe.
-
-The following limitations should be considered before treating the application as production-ready:
-
-- Live after-fix behavior of the Memory, Notifications, and Doses endpoints was not confirmed in the latest reported endpoint investigation.
-- Real end-to-end registration, session exchange, Care Circle creation, medication persistence, cross-circle authorization, and alert transactions still require a complete authenticated smoke test against the configured Firebase project.
-- Production Vercel environment variables and the deployed production domain must be configured and tested separately.
-- Reminder processing is manual/best-effort; continuous background delivery is not guaranteed.
-- Email, SMS, WhatsApp, browser push, and automatic multi-level timed escalation are not claimed as implemented.
-- Voice-based conversational check-in and AI intent parsing are proposed future work, not part of the verified implementation.
-- Demo mode stores fictional state in the browser and does not synchronize with Firebase or other devices.
-
-Do not describe any unverified integration as working. Update this section after completing live Firebase and production deployment tests.
-
----
-
-## Repository and project
-
-- **GitHub:** [https://github.com/Anshum-Sahoo/Saathi](https://github.com/Anshum-Sahoo/Saathi)
-- **Project:** SAATHI — Elder-First Care Coordination
-- **Hackathon:** CATALYST 2026 — Solo AI Hackathon, organised by Makers Need More (MnM) with PromptWars
-
-## License
-
-No license has been specified in this repository yet. Unless a license is added, the source remains under the repository owner's default copyright; do not assume it is open source for reuse.
+- Repository: [Anshum-Sahoo/Saathi](https://github.com/Anshum-Sahoo/Saathi)
+- Deployment: no verified public deployment URL is currently listed.
+- Reference: [SAATHI engineering and product reference](docs/SAATHI_REFERENCE.md)
