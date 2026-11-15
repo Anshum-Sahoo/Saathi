@@ -195,6 +195,57 @@ button:focus-visible, a:focus-visible { outline: 3px solid #14b8a6; outline-offs
 .elder-summary h2 { margin-top:0; }
 .elder-summary p,.elder-disclaimer { color:#5d6b63; line-height:1.8; }
 .elder-disclaimer { margin-top:22px; font-size:13px; }
+.care-operations { padding-top:4px; }
+.care-operations-grid { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(280px,.8fr); gap:18px; align-items:start; }
+.medicine-form,.help-form { display:grid; gap:13px; margin:14px 0 19px; padding:17px; border:1px solid #dce8df; border-radius:15px; background:#f8fbf7; }
+.medicine-form h3,.help-form h3 { margin:0; font-size:16px; }
+.medicine-form label,.help-form label,.resolve-row { display:grid; gap:7px; color:#43574b; font-size:13px; font-weight:700; }
+.medicine-form input,.help-form input,.medicine-form select,.help-form select,.resolve-row select { min-height:46px; width:100%; padding:9px 12px; border:1px solid #d8e1d7; border-radius:10px; color:var(--ink); background:white; font:inherit; font-weight:500; }
+.medicine-form input:focus-visible,.help-form input:focus-visible,.medicine-form select:focus-visible,.help-form select:focus-visible,.resolve-row select:focus-visible { outline:3px solid #8bc6ad; outline-offset:2px; }
+.medicine-form fieldset { margin:0; padding:10px; border:1px solid #dce4dc; border-radius:11px; }
+.medicine-form legend { padding:0 5px; color:#43574b; font-size:12px; font-weight:700; }
+.weekday-list { display:flex; flex-wrap:wrap; gap:12px; }
+.weekday-list label { display:flex; align-items:center; gap:6px; font-size:12px; }
+.weekday-list input { width:18px; min-height:18px; accent-color:var(--teal); }
+.medicine-date-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.medicine-row { display:flex; align-items:flex-start; justify-content:space-between; gap:15px; padding:15px 0; border-top:1px solid #eef0eb; }
+.medicine-row strong,.medicine-row span { display:block; }
+.medicine-row strong { font-size:15px; }
+.medicine-row span,.medicine-row p { margin:5px 0 0; color:var(--muted); font-size:12px; line-height:1.55; }
+.medicine-row .status-pill { display:inline-block; margin-top:7px; padding:3px 8px; border-radius:99px; color:#72592e; background:#f6f0e4; font-size:11px; }
+.care-safety-note { margin:15px 0 0; color:#738078; font-size:12px; line-height:1.6; }
+.alert-list { display:grid; gap:12px; }
+.alert-list .request-card { padding:15px; }
+.alert-list .button { min-height:48px; font-size:12px; }
+.alert-owner { color:var(--teal-dark); font-weight:700; }
+.resolve-row { margin-top:12px; }
+.success-note { padding:12px 14px; border:1px solid #c9e3d2; border-radius:12px; color:#245e44; background:#f2faf3; font-size:13px; line-height:1.55; }
+.elder-routine { margin:24px 0; }
+.elder-routine .elder-welcome { margin-bottom:14px; }
+.elder-routine .elder-welcome h2 { margin:6px 0; font-size:clamp(24px,4vw,34px); letter-spacing:-.04em; }
+.elder-dose-list { display:grid; gap:13px; }
+.elder-dose { padding:20px; border:1px solid #e1e8df; border-left:5px solid #b5c7b8; border-radius:16px; background:#fff; }
+.elder-dose.due,.elder-dose.snoozed { border-left-color:#a47b3d; background:#fffdf7; }
+.elder-dose.confirmed,.elder-dose.resolved { border-left-color:#438168; background:#f8fcf8; }
+.elder-dose h3 { margin:11px 0 5px; font-size:clamp(21px,4vw,28px); }
+.elder-dose>p { margin:5px 0; color:#506157; font-size:17px; line-height:1.6; }
+.elder-dose .elder-instructions { color:#68776e; font-size:15px; }
+.elder-dose-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.elder-dose-heading time { color:#3b5e4c; font-size:21px; font-weight:800; }
+.dose-state { padding:6px 10px; border-radius:999px; color:#54645a; background:#f1f4f0; font-size:12px; font-weight:700; text-align:center; }
+.dose-state.due,.dose-state.snoozed { color:#735426; background:#f9efd9; }
+.dose-state.confirmed { color:#286647; background:#e8f5ec; }
+.elder-signal-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:17px; }
+.elder-signal-actions .button { min-height:62px; font-size:16px; }
+.help-button { color:#84473e; border-color:#ecd8d2; background:#fff8f5; }
+.help-form .circle-actions { margin-top:2px; }
+@media (max-width:760px) {
+  .care-operations-grid { grid-template-columns:1fr; }
+  .medicine-row { flex-direction:column; }
+  .elder-dose-heading { align-items:flex-start; flex-direction:column; }
+  .elder-signal-actions { grid-template-columns:1fr; }
+  .elder-signal-actions .button { min-height:58px; }
+}
 @media (max-width:600px) {
   .auth-wrap { min-height:0; padding-top:24px; }
   .auth-panel { border-radius:18px; }

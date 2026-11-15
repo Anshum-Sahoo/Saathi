@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cookieRequest } from "@/lib/firebase/client-auth";
+import { CareOperations } from "@/components/care/care-operations";
 
 type Profile = { member: { displayName: string; role: string; permissions: { viewHistory: boolean } }; circle: { elderName: string; preferredName: string; status: string } };
 type Member = { id: string; displayName: string; role: string; tier: string };
@@ -42,6 +43,7 @@ export function FamilyView() {
       </section>
       <section className="surface surface-pad"><h2>Care Memory</h2>{profile.member.permissions.viewHistory ? events.map((item) => <div className="memory-item" key={item.id}><div><strong>{item.type.replaceAll(".", " · ")}</strong><span>{item.actor?.displayName ?? "Circle update"} · {new Date(item.at).toLocaleString()}</span></div></div>) : <p>The elder has not shared Care Memory with this account.</p>}</section>
     </div>
+    <CareOperations />
     <button type="button" className="button button-secondary" onClick={() => void cookieRequest("/api/auth/logout", "POST", {}).then(() => window.location.assign("/login"))}>Sign out</button>
   </div>;
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cookieRequest } from "@/lib/firebase/client-auth";
+import { MedicationRoutine } from "./medication-routine";
 
 type Current = { member: { role: string; displayName: string }; circle: { preferredName: string; elderName: string; status: string } };
 
@@ -18,6 +19,7 @@ export function ElderHome() {
 
   if (current?.member.role === "elder") return <div className="page-wrap elder-home">
     <section className="elder-welcome"><div><span className="eyebrow">Your care, your way</span><h1>Namaste, {current.circle.preferredName}</h1><p>This device is paired. You can open Elder Mode here whenever you need it.</p></div><span className="pill-preview">{current.circle.status === "active" ? "Your circle is connected" : "Your circle is waiting for consent"}</span></section>
+    {current.circle.status === "active" ? <MedicationRoutine /> : <section className="surface surface-pad elder-summary"><h2>Your routine will appear here</h2><p>Your care circle is waiting for you to choose whether to accept sharing.</p></section>}
     <section className="surface surface-pad elder-summary"><h2>Your circle</h2><p>{current.circle.elderName} is connected with {current.circle.preferredName}’s care circle. Your PIN is only needed when you change important sharing settings.</p><Link className="button button-secondary" href="/care-circle">Review my care circle</Link></section>
     <p className="elder-disclaimer">SAATHI helps your circle stay in touch. It does not give medical advice and is not an emergency service.</p>
   </div>;
