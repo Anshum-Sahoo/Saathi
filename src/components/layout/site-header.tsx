@@ -1,10 +1,12 @@
 import Link from "next/link";
-import { HeartHandshake, Home, UsersRound } from "lucide-react";
+import { HeartHandshake, Home, UsersRound, UserRound } from "lucide-react";
 
 const links = [
   { href: "/elder", label: "Elder Mode", icon: Home },
   { href: "/caregiver", label: "Caregiver", icon: HeartHandshake },
   { href: "/family", label: "Family", icon: UsersRound },
+  { href: "/care-circle", label: "Care circle", icon: UsersRound },
+  { href: "/login", label: "Sign in", icon: UserRound },
 ];
 
 export function SiteHeader() {

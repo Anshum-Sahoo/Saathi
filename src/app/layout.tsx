@@ -13,7 +13,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <SiteHeader />
         <main className="page-main">{children}</main>
-        <footer className="page-footer">A little care goes a long way. SAATHI is a coordination preview, not medical advice.</footer>
+        <footer className="page-footer">A little care goes a long way. SAATHI coordinates check-ins; it does not give medical advice or verify that medicine was taken.</footer>
       </body>
     </html>
   );

@@ -1,3 +1,3 @@
 # Tests
 
-This foundation has no test runner yet. The current quality commands are lint, strict type-check, and production build. Add focused tests with the first real workflows, especially server authorization, one-time pairing, task-claim races, and idempotent escalation.
+Run the focused auth and authorization unit tests with `npm run test`. They cover pairing and PIN primitives, session policy, Firebase token revocation checks, and permission rules without Firebase credentials. They do not verify Firestore transactions or live Firebase behavior; add integration coverage when a Firebase project or emulator is available.

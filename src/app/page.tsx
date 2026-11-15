@@ -32,21 +32,21 @@ const roles = [
 export default function HomePage() {
   return (
     <div className="page-wrap">
-      <PreviewBanner>Foundation preview · No sign-in, health data, or care actions are connected yet.</PreviewBanner>
+      <PreviewBanner>Private care circles · Adult accounts use Firebase Authentication · Elder devices pair once.</PreviewBanner>
       <section className="hero" aria-labelledby="welcome-title">
         <div className="hero-copy">
           <span className="eyebrow"><Sprout size={15} />Care feels better together</span>
           <h1 id="welcome-title">A care circle that keeps <span>showing up.</span></h1>
           <p>{site.tagline} SAATHI helps elders, caregivers, and family stay connected around everyday care—with the elder always at the centre.</p>
           <div className="hero-actions">
-            <Link className="button button-primary" href="/elder">Explore Elder Mode <ArrowRight size={17} /></Link>
-            <Link className="button button-secondary" href="/caregiver">See the caregiver view</Link>
+          <Link className="button button-primary" href="/register">Create a care circle <ArrowRight size={17} /></Link>
+            <Link className="button button-secondary" href="/pair-device">Pair elder device</Link>
           </div>
         </div>
         <div className="hero-art"><div className="hero-orbit" aria-hidden="true" /><WelcomeGarden /><div className="hero-note"><span className="hero-note-mark"><HeartHandshake size={17} /></span><div><strong>Care, shared with care</strong><span>Everyone knows who’s there</span></div></div></div>
       </section>
       <section aria-labelledby="roles-title">
-        <div className="section-heading"><div><h2 id="roles-title">A place for everyone in the circle</h2><p>Choose a preview to see how each person fits into shared care.</p></div></div>
+        <div className="section-heading"><div><h2 id="roles-title">A place for everyone in the circle</h2><p>Choose where you want to start.</p></div></div>
         <div className="role-grid">
           {roles.map(({ href, title, text, icon: Icon }) => (
             <Link className="role-card" href={href} key={href}><span className="role-icon"><Icon size={20} /></span><h3>{title}</h3><p>{text}</p></Link>

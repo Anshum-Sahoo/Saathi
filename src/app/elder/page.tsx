@@ -1,5 +1,5 @@
-import { ElderPreview } from "@/components/elder/elder-preview";
+import { ElderHome } from "@/components/elder/elder-home";
 
 export default function ElderPage() {
-  return <ElderPreview />;
+  return <ElderHome />;
 }
