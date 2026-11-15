@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { cookieRequest } from "@/lib/firebase/client-auth";
+import { useLanguage } from "@/components/i18n/language-provider";
+import { NotificationCenter } from "./notification-center";
+import { AppointmentAgenda } from "./appointment-agenda";
+import { ReminderCheck } from "./reminder-check";
 
 type Medicine = { id: string; name: string; strength?: string; label: string; instructionText: string; times: string[]; daysOfWeek: number[]; startDate: string; endDate: string | null; status: string };
 type Alert = { id: string; type: string; reason: string | null; description?: string; status: string; createdAt: string; claimedBy: { memberId: string; displayName: string } | null };
@@ -13,18 +17,24 @@ type FormValues = Omit<Medicine, "id" | "status" | "times" | "daysOfWeek"> & { i
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const blankForm = (timezone: string): FormValues => ({ name: "", strength: "", label: "", instructionText: "", times: "09:00", daysOfWeek: [0, 1, 2, 3, 4, 5, 6], startDate: new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()), endDate: null });
 
-function eventLabel(type: string) {
-  const labels: Record<string, string> = {
-    "medication.created": "Medicine added", "medication.updated": "Medicine details changed", "medication.paused": "Medicine paused",
-    "medication.discontinued": "Medicine discontinued", "dose.confirmed": "Elder reported the routine done", "dose.snoozed": "Elder asked for a later reminder",
-    "help.requested": "Elder asked for help", "alert.claimed": "A helper took responsibility", "alert.resolved": "Alert marked as handled",
+function eventLabel(event: Memory, t: (key: string, params?: Record<string, string | number>) => string) {
+  const keys: Record<string, string> = {
+    "medication.created": "memory.medication.created", "medication.updated": "memory.medication.updated", "medication.paused": "memory.medication.paused",
+    "medication.discontinued": "memory.medication.discontinued", "dose.confirmed": "memory.dose.confirmed", "dose.snoozed": "memory.dose.snoozed",
+    "dose.reminder_due": "memory.dose.due", "dose.snooze_due": "memory.dose.snoozeDue", "help.requested": "memory.help.requested",
+    "alert.claimed": "memory.alert.claimed", "alert.resolved": "memory.alert.resolved", "appointment.created": "memory.appointment.created",
+    "appointment.updated": "memory.appointment.updated", "appointment.assigned": "memory.appointment.assigned", "appointment.acknowledged": "memory.appointment.acknowledged",
+    "appointment.cancelled": "memory.appointment.cancelled", "appointment.completed": "memory.appointment.completed", "appointment.reminder_created": "memory.appointment.reminder",
   };
-  return labels[type] ?? type.replaceAll(".", " · ");
+  const name = event.actor?.displayName ?? t("memory.circle");
+  const outcome = String(event.data?.outcome ?? "other");
+  return t(keys[event.type] ?? "memory.title", { name, actor: name, label: String(event.data?.label ?? t("care.today")), outcome: t(`memory.outcome.${outcome}`) });
 }
 
-const reasonLabel: Record<string, string> = { medicine_finished: "Medicine finished", feel_unwell: "Feeling unwell", call_me: "Please call me", other: "Other" };
+const reasonKey: Record<string, string> = { medicine_finished: "elder.help.medicineFinished", feel_unwell: "elder.help.feelUnwell", call_me: "elder.help.callMe", other: "elder.help.other" };
 
 export function CareOperations() {
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -66,10 +76,10 @@ export function CareOperations() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
   useEffect(() => {
+    const initial = window.setTimeout(() => { void load(); }, 0);
     const timer = window.setInterval(() => { void load(); }, 15_000);
-    return () => window.clearInterval(timer);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
   }, [load]);
 
   async function saveMedicine(event: FormEvent<HTMLFormElement>) {
@@ -81,10 +91,10 @@ export function CareOperations() {
       if (form.id) {
         const { id, ...patch } = body;
         await cookieRequest(`/api/medications/${encodeURIComponent(id!)}`, "PATCH", patch);
-        setNotice("Medicine details saved.");
+      setNotice(t("care.saved"));
       } else {
         await cookieRequest("/api/medications", "POST", body);
-        setNotice("Medicine added to the schedule.");
+        setNotice(t("care.added"));
       }
       setForm(null); await load();
     } catch (saveError) { setError(saveError instanceof Error ? saveError.message : "Medicine could not be saved."); }
@@ -95,7 +105,7 @@ export function CareOperations() {
     setWorking(true); setError(""); setNotice("");
     try {
       await cookieRequest(`/api/medications/${encodeURIComponent(medicine.id)}/pause`, "POST", { status });
-      setNotice(status === "paused" ? "Medicine paused. Its past routine records remain in Care Memory." : "Medicine discontinued. Its past routine records remain in Care Memory.");
+      setNotice(status === "paused" ? t("care.pausedHistory") : t("care.discontinuedHistory"));
       await load();
     } catch (pauseError) { setError(pauseError instanceof Error ? pauseError.message : "That change could not be saved."); }
     finally { setWorking(false); }
@@ -105,7 +115,7 @@ export function CareOperations() {
     setWorking(true); setError(""); setNotice("");
     try {
       await cookieRequest(`/api/alerts/${encodeURIComponent(alert.id)}/claim`, "POST", { requestId: crypto.randomUUID() });
-      setNotice("You’re on it. The care circle can see you took responsibility."); await load();
+      setNotice(t("care.claimedNotice")); await load();
     } catch (claimError) { setError(claimError instanceof Error ? claimError.message : "This alert could not be claimed."); await load(); }
     finally { setWorking(false); }
   }
@@ -114,7 +124,7 @@ export function CareOperations() {
     setWorking(true); setError(""); setNotice("");
     try {
       await cookieRequest(`/api/alerts/${encodeURIComponent(alert.id)}/resolve`, "POST", { outcome, requestId: crypto.randomUUID() });
-      setNotice("The alert was marked as handled and added to Care Memory."); await load();
+      setNotice(t("care.resolvedNotice")); await load();
     } catch (resolveError) { setError(resolveError instanceof Error ? resolveError.message : "The alert could not be resolved."); }
     finally { setWorking(false); }
   }
@@ -126,46 +136,48 @@ export function CareOperations() {
   const canReceive = profile.member.role === "elder" || profile.member.permissions.receiveAlerts;
 
   return <section className="page-wrap care-operations" aria-label="Medication schedule, help alerts, and Care Memory">
-    <div className="screen-heading"><div><span className="eyebrow">Care, shared with care</span><h1>Today’s care</h1><p>Changes and check-ins are shared with the people the elder has approved.</p></div><button type="button" className="button button-secondary" onClick={() => void load()}>Refresh</button></div>
+    <div className="screen-heading"><div><span className="eyebrow">{t("care.shared")}</span><h1>{t("care.heading")}</h1><p>{t("care.sharedHint")}</p></div><div className="care-heading-actions"><NotificationCenter /><button type="button" className="button button-secondary" onClick={() => void load()}>{t("common.refresh")}</button></div></div>
     {error && <p role="alert" className="form-error">{error}</p>}{notice && <p role="status" className="success-note">{notice}</p>}
-    {profile.circle.status !== "active" && <section className="surface surface-pad"><h2>Waiting for consent</h2><p>The medication schedule opens after the elder accepts care sharing.</p></section>}
+    {profile.circle.status !== "active" && <section className="surface surface-pad"><h2>{t("care.waitingTitle")}</h2><p>{t("care.waitingConsent")}</p></section>}
     {profile.circle.status === "active" && <div className="care-operations-grid">
       {canView && <section className="surface surface-pad" aria-labelledby="medicines-title">
-        <div className="surface-heading"><div><h2>Today’s routine</h2><p>Responses are self-reported by the elder.</p></div></div>
-        {!doses.length && <p className="quiet-placeholder">No doses are scheduled for today.</p>}
-        <div className="medicine-list">{doses.map((dose) => <div className="medicine-row" key={dose.id}><div><strong>{dose.snapshot.name}{dose.snapshot.strength ? ` · ${dose.snapshot.strength}` : ""}</strong><span>{new Date(dose.scheduledAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: profile.circle.timezone })} · {dose.uiState === "confirmed" ? "Elder reported done" : dose.uiState === "snoozed" ? "Snoozed" : dose.uiState === "unconfirmed" ? "No response yet" : dose.uiState}</span></div></div>)}</div>
-        <div className="surface-heading"><div><h2 id="medicines-title">Medicines</h2><p>Times use {profile.circle.timezone}.</p></div>{canEdit && <button type="button" className="button button-primary" disabled={working || medicines.length >= 20} onClick={() => setForm(blankForm(profile.circle.timezone))}>Add medicine</button>}</div>
+        <div className="surface-heading"><div><h2>{t("care.today")}</h2><p>{t("care.responsesReported")}</p></div></div>
+        {!doses.length && <p className="quiet-placeholder">{t("care.noDoses")}</p>}
+        <div className="medicine-list">{doses.map((dose) => <div className="medicine-row" key={dose.id}><div><strong>{dose.snapshot.name}{dose.snapshot.strength ? ` · ${dose.snapshot.strength}` : ""}</strong><span>{new Date(dose.scheduledAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: profile.circle.timezone })} · {t(`common.status.${dose.uiState}`)}</span></div></div>)}</div>
+        <div className="surface-heading"><div><h2 id="medicines-title">{t("care.medicines")}</h2><p>{t("care.timezone", { timezone: profile.circle.timezone })}</p></div>{canEdit && <button type="button" className="button button-primary" disabled={working || medicines.length >= 20} onClick={() => setForm(blankForm(profile.circle.timezone))}>{t("care.addMedicine")}</button>}</div>
         {form && <form className="medicine-form" onSubmit={(event) => void saveMedicine(event)}>
-          <h3>{form.id ? "Edit medicine" : "Add a medicine"}</h3>
-          <label>Medicine name<input required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-          <label>Strength, if provided<input maxLength={60} value={form.strength ?? ""} onChange={(e) => setForm({ ...form, strength: e.target.value })} /></label>
-          <label>Instructions entered by caregiver<input maxLength={240} value={form.instructionText} onChange={(e) => setForm({ ...form, instructionText: e.target.value })} /></label>
-          <label>Simple note for the elder<input required maxLength={160} value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
-          <label>Scheduled times, 24-hour clock<input required aria-describedby="times-help" value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} /><span id="times-help" className="field-note">Separate times with commas, for example 09:00, 20:30.</span></label>
-          <fieldset><legend>Days</legend><div className="weekday-list">{weekdays.map((day, index) => <label key={day}><input type="checkbox" checked={form.daysOfWeek.includes(index)} onChange={() => setForm({ ...form, daysOfWeek: form.daysOfWeek.includes(index) ? form.daysOfWeek.filter((value) => value !== index) : [...form.daysOfWeek, index].sort() })} />{day}</label>)}</div></fieldset>
-          <div className="medicine-date-row"><label>Start date<input required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></label><label>End date (optional)<input type="date" value={form.endDate ?? ""} onChange={(e) => setForm({ ...form, endDate: e.target.value || null })} /></label></div>
-          <div className="circle-actions"><button className="button button-primary" disabled={working || !form.daysOfWeek.length}>Save medicine</button><button type="button" className="button button-secondary" onClick={() => setForm(null)}>Cancel</button></div>
+          <h3>{form.id ? t("care.editMedicine") : t("care.addMedicine")}</h3>
+          <label>{t("care.medicineName")}<input required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
+          <label>{t("care.strength")}<input maxLength={60} value={form.strength ?? ""} onChange={(e) => setForm({ ...form, strength: e.target.value })} /></label>
+          <label>{t("care.instructions")}<input maxLength={240} value={form.instructionText} onChange={(e) => setForm({ ...form, instructionText: e.target.value })} /></label>
+          <label>{t("care.elderNote")}<input required maxLength={160} value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
+          <label>{t("care.times")}<input required aria-describedby="times-help" value={form.times} onChange={(e) => setForm({ ...form, times: e.target.value })} /><span id="times-help" className="field-note">{t("care.timesHelp")}</span></label>
+          <fieldset><legend>{t("care.days")}</legend><div className="weekday-list">{weekdays.map((day, index) => <label key={day}><input type="checkbox" checked={form.daysOfWeek.includes(index)} onChange={() => setForm({ ...form, daysOfWeek: form.daysOfWeek.includes(index) ? form.daysOfWeek.filter((value) => value !== index) : [...form.daysOfWeek, index].sort() })} />{t(`weekday.${index}`)}</label>)}</div></fieldset>
+          <div className="medicine-date-row"><label>{t("care.startDate")}<input required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></label><label>{t("care.endDate")}<input type="date" value={form.endDate ?? ""} onChange={(e) => setForm({ ...form, endDate: e.target.value || null })} /></label></div>
+          <div className="circle-actions"><button className="button button-primary" disabled={working || !form.daysOfWeek.length}>{t("common.save")}</button><button type="button" className="button button-secondary" onClick={() => setForm(null)}>{t("common.cancel")}</button></div>
         </form>}
-        {medicines.length === 0 && <div className="quiet-placeholder"><p>No medicines have been added yet. A caregiver can enter the schedule from the elder’s instructions.</p></div>}
+        {medicines.length === 0 && <div className="quiet-placeholder"><p>{t("care.noMedicines")} {t("care.emptyMedicinesHint")}</p></div>}
         <div className="medicine-list">{medicines.map((medicine) => <article className="medicine-row" key={medicine.id}>
           <div><strong>{medicine.name}{medicine.strength ? ` · ${medicine.strength}` : ""}</strong><span>{medicine.times.join(" · ")} · {medicine.daysOfWeek.length === 7 ? "Every day" : medicine.daysOfWeek.map((day) => weekdays[day]).join(", ")}</span><p>{medicine.label}{medicine.instructionText ? ` — ${medicine.instructionText}` : ""}</p>{medicine.status !== "active" && <span className="status-pill">{medicine.status}</span>}</div>
-          {canEdit && medicine.status === "active" && <div className="circle-actions"><button type="button" className="text-action" disabled={working} onClick={() => setForm({ ...medicine, times: medicine.times.join(", ") })}>Edit</button><button type="button" className="text-action" disabled={working} onClick={() => void pauseMedicine(medicine, "paused")}>Pause</button><button type="button" className="text-action" disabled={working} onClick={() => void pauseMedicine(medicine, "discontinued")}>Discontinue</button></div>}
+          {canEdit && medicine.status === "active" && <div className="circle-actions"><button type="button" className="text-action" disabled={working} onClick={() => setForm({ ...medicine, times: medicine.times.join(", ") })}>{t("common.edit")}</button><button type="button" className="text-action" disabled={working} onClick={() => void pauseMedicine(medicine, "paused")}>{t("care.pause")}</button><button type="button" className="text-action" disabled={working} onClick={() => void pauseMedicine(medicine, "discontinued")}>{t("care.discontinue")}</button></div>}
         </article>)}</div>
-        <p className="care-safety-note">SAATHI records the schedule entered by your care circle. It does not recommend medicines or change instructions.</p>
+        <p className="care-safety-note">{t("care.medicalSafety")}</p>
       </section>}
-      {canReceive && <section className="surface surface-pad" aria-labelledby="alerts-title">
-        <div className="surface-heading"><div><h2 id="alerts-title">Care alerts</h2><p>A named person can take responsibility.</p></div></div>
-        {!alerts.length && <div className="quiet-placeholder"><p>No open care alerts.</p></div>}
+      {canReceive && <section id="alerts" className="surface surface-pad" aria-labelledby="alerts-title">
+        <div className="surface-heading"><div><h2 id="alerts-title">{t("care.alerts")}</h2><p>{t("care.alertsHint")}</p></div></div>
+        {!alerts.length && <div className="quiet-placeholder"><p>{t("care.noAlerts")}</p></div>}
         <div className="alert-list">{alerts.map((alert) => <article className="request-card" key={alert.id}>
-          <div className="request-top"><div className="request-symbol" aria-hidden="true">!</div><div><h3>{alert.type === "help_request" ? "Asked for help" : "Routine needs a check-in"}</h3><p>{alert.reason ? reasonLabel[alert.reason] : "No response has been recorded."}{alert.description ? ` · ${alert.description}` : ""}</p></div></div>
-          <p className="request-meta">Created {new Date(alert.createdAt).toLocaleString()}</p>
-          {alert.status === "claimed" && <p className="alert-owner" role="status">{alert.claimedBy?.displayName ?? "A helper"} is on it.</p>}
-          {alert.status === "open" && <button type="button" className="button button-primary" disabled={working} onClick={() => void claim(alert)}>I’ve got it — I’m checking on them</button>}
-          {alert.status === "claimed" && alert.claimedBy?.memberId === profile.member.id && <label className="resolve-row">How was it handled?<select defaultValue="" disabled={working} onChange={(event) => { if (event.target.value) void resolve(alert, event.target.value); }}><option value="" disabled>Choose an outcome</option><option value="spoke_with_elder">Spoke with them</option><option value="visited_in_person">Visited in person</option><option value="medicine_arranged">Medicine arranged</option><option value="other">Other</option></select></label>}
+          <div className="request-top"><div className="request-symbol" aria-hidden="true">!</div><div><h3>{t(alert.type === "help_request" ? "care.requestedHelp" : "care.checkIn")}</h3><p>{alert.reason ? t(reasonKey[alert.reason] ?? "elder.help.other") : t("care.noResponse")}{alert.description ? ` · ${alert.description}` : ""}</p></div></div>
+          <p className="request-meta">{t("care.createdAt", { time: new Date(alert.createdAt).toLocaleString() })}</p>
+          {alert.status === "claimed" && <p className="alert-owner" role="status">{t("care.owner", { name: alert.claimedBy?.displayName ?? t("care.helper") })}</p>}
+          {alert.status === "open" && <button type="button" className="button button-primary" disabled={working} onClick={() => void claim(alert)}>{t("care.claim")}</button>}
+          {alert.status === "claimed" && alert.claimedBy?.memberId === profile.member.id && <label className="resolve-row">{t("care.resolvePrompt")}<select defaultValue="" disabled={working} onChange={(event) => { if (event.target.value) void resolve(alert, event.target.value); }}><option value="" disabled>{t("care.chooseOutcome")}</option><option value="spoke_with_elder">{t("care.outcome.spoke")}</option><option value="visited_in_person">{t("care.outcome.visited")}</option><option value="medicine_arranged">{t("care.outcome.medicine")}</option><option value="other">{t("elder.help.other")}</option></select></label>}
         </article>)}</div>
-        <p className="care-safety-note">SAATHI is not an emergency-response service. For an emergency, contact local emergency services or a trusted person directly.</p>
+        <p className="care-safety-note">{t("care.emergency")}</p>
       </section>}
-      {memory.length > 0 && <section className="surface surface-pad" aria-labelledby="care-memory-title"><h2 id="care-memory-title">Care Memory</h2><div className="memory-list">{memory.map((event) => <div className="memory-item" key={event.id}><div><strong>{eventLabel(event.type)}</strong><span>{event.actor?.displayName ?? "Care circle"} · {new Date(event.at).toLocaleString()}</span></div></div>)}</div></section>}
+      {profile.member.role === "caregiver" && canEdit && <ReminderCheck />}
+      {canView && <AppointmentAgenda />}
+      {memory.length > 0 && <section className="surface surface-pad" aria-labelledby="care-memory-title"><h2 id="care-memory-title">{t("memory.title")}</h2><div className="memory-list">{memory.map((event) => <div className="memory-item" key={event.id}><div><strong>{eventLabel(event, t)}</strong><span>{event.actor?.displayName ?? t("memory.circle")} · {new Date(event.at).toLocaleString()}</span></div></div>)}</div></section>}
     </div>}
   </section>;
 }

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { Auth } from "firebase-admin/auth";
 import { createOneTimeCode, hashPin, protectedCode, tokenHash, verifyPin } from "../src/lib/auth/crypto.ts";
 import { verifyFirebaseIdToken } from "../src/lib/auth/firebase-token.ts";
-import { canPerform, defaultPermissions, isAllowedPermissionSet } from "../src/lib/auth/permissions.ts";
+import { canPerform, defaultPermissions, isAllowedPermissionSet, isInvitableRole } from "../src/lib/auth/permissions.ts";
 import { createSessionCredential, isSessionActive, sessionLifetimes } from "../src/lib/auth/session-policy.ts";
 import { memberIdForFirebaseUid } from "../src/lib/auth/member-id.ts";
 import type { MemberPermissions, MemberRole } from "../src/lib/auth/types";
@@ -70,6 +70,14 @@ test("Firebase ID token verifier always asks Admin to check revocation", async (
   assert.equal(checkRevoked, true);
 });
 
+test("Firebase ID token verifier rejects expired and revoked tokens", async () => {
+  for (const code of ["auth/id-token-expired", "auth/id-token-revoked"]) {
+    const failure = Object.assign(new Error("invalid token"), { code });
+    const auth = { verifyIdToken: async () => { throw failure; } } as unknown as Pick<Auth, "verifyIdToken">;
+    await assert.rejects(verifyFirebaseIdToken(auth, "expired-or-revoked"), failure);
+  }
+});
+
 test("authorization matrix keeps family and emergency contacts read-limited", () => {
   const roles: Exclude<MemberRole, "elder">[] = ["caregiver", "family", "emergency_contact"];
   const permissions = Object.fromEntries(roles.map((role) => [role, defaultPermissions(role, true)])) as Record<Exclude<MemberRole, "elder">, MemberPermissions>;
@@ -88,4 +96,11 @@ test("only role-approved permissions can be granted", () => {
   assert.equal(isAllowedPermissionSet("caregiver", { ...defaultPermissions("caregiver"), manageCircle: true }), true);
   assert.equal(tokenHash("opaque-session-token").length, 64);
   assert.notEqual(tokenHash("opaque-session-token"), "opaque-session-token");
+});
+
+test("only family and emergency contacts can accept member invitations", () => {
+  assert.equal(isInvitableRole("family"), true);
+  assert.equal(isInvitableRole("emergency_contact"), true);
+  assert.equal(isInvitableRole("caregiver"), false);
+  assert.equal(isInvitableRole("elder"), false);
 });

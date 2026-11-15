@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({ status: z.enum(["paused", "discontinued"]) }).strict();
 type RouteContext = { params: Promise<{ id: string }> };
 
-export const POST = apiRoute(async (request, context: RouteContext) => {
+export const POST = apiRoute(async (request: Request, context: RouteContext) => {
   requireOrigin(request);
   const auth = await requireAction(request, "editMedications");
   ensureActiveCircle(auth);

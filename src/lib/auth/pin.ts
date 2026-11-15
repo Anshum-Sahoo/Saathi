@@ -12,14 +12,15 @@ export async function verifyElderPin(db: Firestore, memberId: string, pin: strin
     const current = await transaction.get(ref);
     const value = current.data();
     if ((value?.lockedUntil?.toMillis() ?? 0) > now) throw new ApiError(429, "RATE_LIMITED", "Too many tries. Please wait before trying again.");
-    const active = (value?.windowStart?.toMillis() ?? 0) > now - windowMs;
-    const count = active ? Number(value.count ?? 0) : 0;
+    const windowStart = value?.windowStart;
+    const active = Boolean(windowStart && windowStart.toMillis() > now - windowMs);
+    const count = active ? Number(value?.count ?? 0) : 0;
     if (count >= 5) throw new ApiError(429, "RATE_LIMITED", "Too many tries. Please wait before trying again.");
     const nextCount = count + 1;
     const lockedUntil = nextCount >= 5 ? Timestamp.fromMillis(now + windowMs) : undefined;
     transaction.set(ref, {
       count: nextCount,
-      windowStart: active ? value.windowStart : Timestamp.fromMillis(now),
+      windowStart: active && windowStart ? windowStart : Timestamp.fromMillis(now),
       ...(lockedUntil ? { lockedUntil, expireAt: lockedUntil } : { expireAt: Timestamp.fromMillis(now + windowMs) }),
     });
   });

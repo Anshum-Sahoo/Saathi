@@ -67,6 +67,26 @@
         { "fieldPath": "medicationId", "order": "ASCENDING" },
         { "fieldPath": "scheduledAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "channel", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "circleId", "order": "ASCENDING" },
+        { "fieldPath": "memberId", "order": "ASCENDING" },
+        { "fieldPath": "channel", "order": "ASCENDING" },
+        { "fieldPath": "readAt", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

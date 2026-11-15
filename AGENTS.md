@@ -3,9 +3,9 @@
 ## Source of truth and scope
 
 - `docs/SAATHI_REFERENCE.md` is the detailed product, API, data, security, and behavior specification. `PROJECT_PLAN.md` records the approved scope and current phase.
-- The authoritative deployment target is zero-payment: Vercel Hobby, Firebase Spark, eligible Gemini free quota, and GitHub Actions best-effort schedules. No Google Cloud billing account.
+- The authoritative deployment target is zero-payment: Vercel Hobby, Firebase Spark, and Gemini only within eligible free quota. GitHub Actions may run CI; this build has no reminder schedule. No Google Cloud billing account.
 - Do not add Cloud Run, Cloud Scheduler, Secret Manager, Docker deployment, Cloud Build, Artifact Registry, FastAPI, a second backend, PostgreSQL, Redis, or paid services.
-- Preserve all working Phase 2 foundation and `legacy-prototype/` as a read-only visual reference. Phase 3 authentication and care-circle foundation is implemented. Phase 4 medication management, elder Care Signals, atomic help claiming, and Care Memory are authorized; do not add background escalation, Gemini scanning, email, appointments, or unrelated features in this phase.
+- Preserve all working Phase 2 foundation and `legacy-prototype/` as a read-only visual reference. Phase 3 authentication and the Phase 4 care workflow are implemented. The final feature sprint adds manual reminder processing, in-app notifications, appointment management, English/Hindi UI, accessibility polish, and an isolated local demo. Do not add scheduled jobs, Gemini scanning, email/SMS/push delivery, or unrelated features without a separate scope decision.
 
 ## Stack and boundaries
 
@@ -15,7 +15,7 @@
 - Resolve circle, role, member, and permissions from verified server-side identity/session data on every protected request. Never trust client-supplied roles, circle IDs, or elder IDs. Pairing and invite codes are single-use, short-lived, hashed, and rate-limited.
 - Use Firestore transactions for claims and state transitions, deterministic IDs for idempotency, and append-only circle-scoped Care Memory. Medication changes preserve historical dose snapshots; no response stays unconfirmed. Keep secrets server-side; no secrets in source, `NEXT_PUBLIC_*`, logs, screenshots, or examples.
 - Gemini is optional and limited to prescription transcription after core workflows. Treat output as untrusted draft text, validate it, and require human review and human-selected dose times. Never generate medical advice or dosing instructions.
-- Escalation is driven by persisted due timestamps and a protected idempotent processor called by GitHub Actions schedule/manual runs, with authorized request-time catch-up. Schedules are best effort; never promise exact-time medical alerts. Email is optional; in-app notifications are required and log mode must not be described as delivered email.
+- Reminder processing is caregiver-triggered through a protected, idempotent Route Handler using persisted due timestamps. Do not add a scheduler for this sprint. Never promise exact-time medical alerts. In-app notifications are the only supported delivery channel; do not imply email or push delivery.
 
 ## UI and safety
 

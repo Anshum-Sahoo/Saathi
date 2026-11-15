@@ -51,4 +51,3 @@ export type SessionRecord = {
   elevatedUntil?: Timestamp;
   deviceLabel?: string;
 };
-import type { Timestamp } from "firebase-admin/firestore";

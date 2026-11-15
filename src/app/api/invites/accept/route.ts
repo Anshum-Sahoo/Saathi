@@ -2,10 +2,9 @@ import { Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import { protectedCode } from "@/lib/auth/crypto";
-import { defaultPermissions, isAllowedPermissionSet } from "@/lib/auth/permissions";
+import { defaultPermissions, isAllowedPermissionSet, isInvitableRole } from "@/lib/auth/permissions";
 import { prepareSession, setSessionCookie, type PreparedSession } from "@/lib/auth/sessions";
-import type { MemberRecord, MemberRole } from "@/lib/auth/types";
-import { actorFor } from "@/lib/server/audit";
+import type { MemberRecord } from "@/lib/auth/types";
 import { ApiError, apiRoute, getBearerToken, readJson, requireOrigin } from "@/lib/server/http";
 import { requireFirestore } from "@/lib/server/firestore";
 import { enforceIpLimit } from "@/lib/server/rate-limit";
@@ -22,11 +21,11 @@ export const POST = apiRoute(async (request) => {
   const input = await readJson(request, schema);
   const auth = getAdminAuth();
   if (!auth) throw new ApiError(503, "SERVICE_UNAVAILABLE", "Authentication is not configured yet.");
+  const db = requireFirestore();
+  await enforceIpLimit(request, db, "invite-accept", 10);
   let identity;
   try { identity = await verifyFirebaseIdToken(auth, getBearerToken(request)); }
   catch { throw new ApiError(401, "UNAUTHENTICATED", "Sign in to accept this invitation."); }
-  const db = requireFirestore();
-  await enforceIpLimit(request, db, "invite-accept", 10);
   const inviteRef = db.collection("invites").doc(protectedCode(input.code));
   const memberRef = db.collection("members").doc(memberIdForFirebaseUid(identity.uid));
   const eventRef = db.collection("events").doc();
@@ -48,8 +47,8 @@ export const POST = apiRoute(async (request) => {
     if (existing.exists && (existing.data()?.status === "active" || existing.data()?.circleId !== invite.circleId)) {
       throw new ApiError(409, "INVALID_STATE", "This account already belongs to a care circle.");
     }
-    const role = invite.role as Exclude<MemberRole, "elder">;
-    if (!["family", "emergency_contact", "caregiver"].includes(role)) throw new ApiError(409, "INVALID_STATE", "This invitation cannot be used.");
+    if (!isInvitableRole(invite.role)) throw new ApiError(409, "INVALID_STATE", "This invitation cannot be used.");
+    const role = invite.role;
     const permissions = invite.permissions ?? defaultPermissions(role);
     if (!isAllowedPermissionSet(role, permissions)) throw new ApiError(409, "INVALID_STATE", "This invitation cannot be used.");
     memberData = {

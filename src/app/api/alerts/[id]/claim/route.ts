@@ -3,6 +3,7 @@ import { requireAction } from "@/lib/auth/guard";
 import { claimSchema } from "@/lib/care/schemas";
 import { ensureDocumentId, eventRecord } from "@/lib/care/firestore";
 import { alertClaimDecision } from "@/lib/care/transitions";
+import { inAppNotification, notificationId } from "@/lib/notifications/server";
 import { apiRoute, ApiError, readJson, requireOrigin } from "@/lib/server/http";
 import { requireFirestore } from "@/lib/server/firestore";
 
@@ -10,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
-export const POST = apiRoute(async (request, route: RouteContext) => {
+export const POST = apiRoute(async (request: Request, route: RouteContext) => {
   requireOrigin(request);
   const context = await requireAction(request, "receiveAlerts");
   if (context.member.role === "elder") throw new ApiError(403, "FORBIDDEN", "Only a circle helper can take responsibility.");
@@ -38,9 +39,16 @@ export const POST = apiRoute(async (request, route: RouteContext) => {
     }
     if (decision === "taken") throw new ApiError(409, "ALERT_ALREADY_CLAIMED", "Another helper already took responsibility.", { claimedBy: { memberId: alert.claimedBy, displayName: alert.claimedByName }, claimedAt: alert.claimedAt?.toDate().toISOString() ?? null });
     if (decision !== "claim") throw new ApiError(409, "ALERT_ALREADY_CLAIMED", "This alert is no longer open.");
+    const otherMembers = (alert.notifiedMemberIds as string[]).filter((memberId) => memberId !== context.memberId);
+    const notificationRefs = otherMembers.map((memberId) => db.collection("notifications").doc(notificationId("alert_claimed", id, memberId)));
+    const notifications = await Promise.all(notificationRefs.map((ref) => transaction.get(ref)));
     const claimedAt = new Date();
     transaction.update(alertRef, { status: "claimed", claimedBy: context.memberId, claimedByName: member.displayName, claimedAt: FieldValue.serverTimestamp(), version: FieldValue.increment(1) });
     transaction.create(eventRef, eventRecord(context, "alert.claimed", { kind: "alert", id }, {}));
+    for (let index = 0; index < notificationRefs.length; index++) if (!notifications[index].exists) transaction.create(notificationRefs[index], inAppNotification({
+      circleId: context.circleId, memberId: otherMembers[index], category: "alert_claimed", titleKey: "notification.claimed.title", bodyKey: "notification.claimed.body",
+      params: { name: member.displayName }, recordType: "alert", recordId: id,
+    }));
     response = { id, status: "claimed", claimedBy: context.memberId, claimedByName: member.displayName, claimedAt: claimedAt.toISOString(), requestId: input.requestId, replayed: false };
   });
   return Response.json({ alert: response }, { headers: { "Cache-Control": "no-store" } });

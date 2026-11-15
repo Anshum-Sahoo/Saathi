@@ -18,7 +18,7 @@ For server-side Firebase Admin access, either use Application Default Credential
 
 Set `ELDER_PIN_PEPPER` and `PAIRING_CODE_PEPPER` to independent high-entropy values. They protect PIN hashes and one-time code digests; losing them means existing PINs/codes cannot be verified. `APP_BASE_URL` must match the deployed Vercel origin for CSRF checks.
 
-The current environment uses Firebase Authentication’s Email/Password Identity Toolkit endpoints because the package registry was unreachable while implementing Phase 3. It still uses Firebase Auth and server-verified ID tokens. Once npm registry access is available, replace this small client adapter with the Firebase Web Auth SDK as required by the architecture; no password is handled by SAATHI APIs.
+The browser uses Firebase Authentication’s supported Email/Password Identity Toolkit endpoints for one-time sign-up/sign-in and immediately exchanges the ID token for a SAATHI session. The refresh token is discarded because SAATHI uses its own HttpOnly session afterward. Firebase Admin verifies token signature, issuer, audience, expiry, and revocation at exchange. No password is handled by SAATHI APIs. Keep this narrow adapter unless ongoing Firebase client auth, token refresh, or SDK-only functionality is added; the Web Auth SDK is preferable for those needs.
 
 ## Deny browser access to Firestore
 

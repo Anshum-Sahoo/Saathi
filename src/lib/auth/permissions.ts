@@ -4,6 +4,13 @@ export type CircleAction =
   | "viewSchedule" | "viewHistory" | "editMedications" | "editAppointments"
   | "viewPrivateAppointments" | "receiveAlerts" | "manageCircle" | "careSignal";
 
+export const INVITABLE_ROLES = ["family", "emergency_contact"] as const;
+export type InvitableRole = (typeof INVITABLE_ROLES)[number];
+
+export function isInvitableRole(role: unknown): role is InvitableRole {
+  return typeof role === "string" && INVITABLE_ROLES.includes(role as InvitableRole);
+}
+
 export function canPerform(role: MemberRole, permissions: MemberPermissions, action: CircleAction, elevated = false): boolean {
   if (role === "elder") {
     if (["manageCircle", "editMedications", "editAppointments", "viewPrivateAppointments"].includes(action)) return elevated;
@@ -33,7 +40,7 @@ export function isAllowedPermissionSet(role: MemberRole, permissions: MemberPerm
   if (role === "elder") return Object.values(permissions).every(Boolean);
   const allowed: Record<Exclude<MemberRole, "elder">, (keyof MemberPermissions)[]> = {
     caregiver: ["viewSchedule", "viewHistory", "editMedications", "editAppointments", "viewPrivateAppointments", "receiveAlerts", "manageCircle"],
-    family: ["viewSchedule", "viewHistory", "receiveAlerts"],
+    family: ["viewSchedule", "viewHistory", "editAppointments", "receiveAlerts"],
     emergency_contact: ["receiveAlerts"],
   };
   return (Object.keys(permissions) as (keyof MemberPermissions)[]).every((key) => !permissions[key] || allowed[role].includes(key));

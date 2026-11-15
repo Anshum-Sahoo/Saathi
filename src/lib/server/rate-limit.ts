@@ -13,18 +13,19 @@ export async function enforceRateLimit(db: Firestore, key: string, maximum: numb
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const value = snapshot.data();
-    const active = value && value.windowStart?.toMillis() > now - windowMs;
-    if (value?.lockedUntil?.toMillis() > now) { limited = true; return; }
-    const count = active ? Number(value.count ?? 0) : 0;
+    const windowStart = value?.windowStart;
+    const active = Boolean(windowStart && windowStart.toMillis() > now - windowMs);
+    if ((value?.lockedUntil?.toMillis() ?? 0) > now) { limited = true; return; }
+    const count = active ? Number(value?.count ?? 0) : 0;
     if (count >= maximum) {
       const lockedUntil = Timestamp.fromMillis(now + windowMs);
-      transaction.set(ref, { count, windowStart: value.windowStart, lockedUntil, expireAt: lockedUntil });
+      transaction.set(ref, { count, windowStart: windowStart ?? Timestamp.fromMillis(now), lockedUntil, expireAt: lockedUntil });
       limited = true;
       return;
     }
     transaction.set(ref, {
       count: count + 1,
-      windowStart: active ? value.windowStart : Timestamp.fromMillis(now),
+      windowStart: active && windowStart ? windowStart : Timestamp.fromMillis(now),
       expireAt: Timestamp.fromMillis(now + windowMs),
     });
   });

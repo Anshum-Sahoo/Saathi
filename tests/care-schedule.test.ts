@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { doseUiState, dosesForDate, localDateInZone, localTimeToUtc } from "../src/lib/care/schedule.ts";
 import { alertClaimDecision, doseSignalDecision } from "../src/lib/care/transitions.ts";
+import { safeDate } from "../src/lib/server/safe-date.ts";
 
 test("fixed clock times use the circle's IANA timezone and deterministic occurrence IDs", () => {
   const medication = {
@@ -18,6 +19,14 @@ test("fixed clock times use the circle's IANA timezone and deterministic occurre
 test("local date selection and scheduled clocks handle day boundaries and daylight saving", () => {
   assert.equal(localDateInZone(new Date("2026-11-15T20:00:00Z"), "Asia/Kolkata"), "2026-11-16");
   assert.equal(localTimeToUtc("2026-11-01", "09:00", "America/New_York").toISOString(), "2026-11-01T14:00:00.000Z");
+});
+
+test("Firestore timestamps map safely and malformed values are omitted", () => {
+  const expected = new Date("2026-11-15T04:00:00.000Z");
+  assert.equal(safeDate(expected)?.toISOString(), expected.toISOString());
+  assert.equal(safeDate({ toDate: () => expected })?.toISOString(), expected.toISOString());
+  assert.equal(safeDate({ toDate: () => { throw new Error("bad timestamp"); } }), undefined);
+  assert.equal(safeDate("not a timestamp"), undefined);
 });
 
 test("medication day and date limits are respected", () => {

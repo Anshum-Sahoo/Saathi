@@ -1,6 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { z } from "zod";
 import { requireAction } from "@/lib/auth/guard";
+import { INVITABLE_ROLES } from "@/lib/auth/permissions";
 import { createOneTimeCode, protectedCode } from "@/lib/auth/crypto";
 import { actorFor } from "@/lib/server/audit";
 import { apiRoute, readJson, requireOrigin, ApiError } from "@/lib/server/http";
@@ -10,7 +11,7 @@ import { enforceIpLimit } from "@/lib/server/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const schema = z.object({ role: z.enum(["family", "emergency_contact"]) }).strict();
+const schema = z.object({ role: z.enum(INVITABLE_ROLES) }).strict();
 
 export const POST = apiRoute(async (request) => {
   requireOrigin(request);

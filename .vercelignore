@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules
+.next
+.git
+.vercel
+coverage
+**/*service-account*.json
+**/*serviceAccount*.json
+**/*firebase-adminsdk*.json
+**/*firebase-admin*.json
+**/*credential*.json

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { LanguageProvider } from "@/components/i18n/language-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,10 +12,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <SiteHeader />
-        <main className="page-main">{children}</main>
-        <footer className="page-footer">A little care goes a long way. SAATHI coordinates check-ins; it does not give medical advice or verify that medicine was taken.</footer>
+      <body suppressHydrationWarning>
+        <LanguageProvider>
+          <SiteHeader />
+          <main className="page-main">{children}</main>
+          <SiteFooter />
+        </LanguageProvider>
       </body>
     </html>
   );

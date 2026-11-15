@@ -2,7 +2,7 @@
 
 **The care circle that never lets an elder go unnoticed.**
 
-SAATHI is an autonomy-first elderly care coordination app. Phase 3 connects adult Firebase Authentication accounts to private care circles, lets families join by one-time invitation, and pairs an elder’s device with a separate PIN. Medication management, Care Signals, escalation, and Gemini are not part of this phase.
+SAATHI is an autonomy-first elderly care coordination app. Adult Firebase Authentication accounts join private care circles, and an elder pairs a device once with a separate PIN. Caregivers manage a fixed-clock medication schedule; elders can report a routine, snooze for 15 minutes, or ask their care circle for help. A helper can atomically claim an alert and record how it was handled.
 
 ## Stack and cost boundary
 
@@ -36,20 +36,23 @@ Never commit `.env.local`, service-account JSON, PIN hashes, session tokens, or 
 
 ## Authentication implementation note
 
-The intended browser integration is the Firebase Web Authentication SDK. Package installation was blocked in the development environment because `registry.npmjs.org` could not be resolved. To keep the lockfile unchanged and still use Firebase Authentication Email/Password, the current small browser adapter calls Firebase’s Identity Toolkit sign-up/sign-in endpoints and sends the returned ID token to the server. Firebase Admin verifies the ID token before SAATHI issues its own HttpOnly session. No SAATHI API receives or stores adult passwords. Replace the adapter with the Firebase Web Auth SDK once npm registry access is available.
+The browser adapter uses Firebase's supported Identity Toolkit Email/Password sign-up/sign-in endpoints. This is a narrow fit for the current flow: it obtains an ID token only to exchange it immediately for an HttpOnly SAATHI session, then discards both the ID token and Firebase refresh token. Firebase Admin verifies signature, issuer, audience, expiry, and revocation before issuing that session. No SAATHI API receives or stores adult passwords, and Firebase tokens are sent only in an Authorization header, never a URL or log. The session then has its own 12-hour idle and 7-day absolute lifetime; logout or member removal revokes SAATHI sessions. A Firebase account disabled after exchange does not invalidate an already issued SAATHI cookie immediately, so use the short SAATHI session lifetime and app-level revocation for this MVP. Prefer the Firebase Web Auth SDK if the app later needs ongoing Firebase client auth, token refresh, or SDK-only features. The SDK was not installed because npm registry DNS was unavailable, and the lockfile remains unchanged.
 
 This adapter and server code have not been verified against a live Firebase project because no Firebase configuration is present in the environment.
 
-## Phase 3 workflows
+## Current workflows
 
 - `/register` — caregiver registration and circle creation, or Firebase account creation with an invitation code.
 - `/login` — adult sign-in and server-side SAATHI session exchange.
 - `/setup` — recover/finish caregiver circle setup.
-- `/care-circle` and `/caregiver` — member list, invitation codes, elder device pairing, device revocation, permissions, and Care Memory for authorized roles.
+- `/care-circle` and `/caregiver` — member list, invitation codes, elder device pairing, device revocation, permissions, medication management, manual reminder processing, in-app notifications, appointments, alert claiming, and Care Memory for authorized roles.
 - `/pair-device` — one-time elder pairing, 4–6 digit PIN, and elder-controlled consent.
-- `/elder` — paired Elder Mode without daily login.
-- `/family` — invitation-based, server-filtered family view.
+- `/elder` — paired Elder Mode without daily login, with today's schedule and the three Care Signal actions.
+- `/family` — invitation-based, server-filtered view with authorized schedule, appointments, help alerts, and Care Memory.
+- `/demo` — isolated fictional data with caregiver, elder, and family views, local persistence, simulated time, and English/Hindi switching. Demo changes do not call authenticated APIs or modify Firebase.
 - `/api/health` — dependency-free health check.
+
+Medication, dose, alert, appointment, notification, and event APIs use the current SAATHI session and derive the circle and role on the server. Dose occurrences use deterministic IDs and the circle's timezone. “I’m okay” is a report from the elder, not proof medicine was taken. No response remains unconfirmed. A caregiver can manually check due reminders; there is no background scheduler. Appointments have a chronological agenda, optional assignment and acknowledgement, and repeat-safe 24-hour/1-hour reminder windows. Help alerts appear in the app, but there is no SMS, push, email, or emergency dispatch. The language switcher offers English and Hindi on the main care screens.
 
 All private operations re-read the session’s member and current permissions from Firestore. Member, invite, pairing, permission, consent, device, and session-revocation events are recorded as Care Memory entries.
 
@@ -62,13 +65,13 @@ npm run test
 npm run build
 ```
 
-Tests use Node’s built-in test runner and exercise auth primitives and permission rules without Firebase credentials. They do not substitute for Firestore integration tests or live Firebase sign-in.
+Tests use Node’s built-in test runner and exercise auth primitives, permission rules, schedule timezone conversion, date limits, dose display state, and isolated demo workflows without Firebase credentials. They do not substitute for Firestore transaction tests or live Firebase sign-in.
 
 ## Deploy
 
 Import the GitHub repository into Vercel, keep the standard Next.js build, and set the public Firebase web settings plus private Admin credentials, PIN/pairing peppers, and `APP_BASE_URL` in encrypted environment variables. Stay on Vercel Hobby and Firebase Spark; do not connect a billing account or use Cloud Run, Docker, Cloud Scheduler, Secret Manager, or a paid email provider.
 
-Publish [`firestore.rules`](firestore.rules) in the Firebase Console before use. Review [`firestore.indexes.json`](firestore.indexes.json) and deploy its indexes for member and Care Memory queries. See [`docs/FIREBASE_SETUP.md`](docs/FIREBASE_SETUP.md) for the full setup steps.
+Publish [`firestore.rules`](firestore.rules) in the Firebase Console before use. Review [`firestore.indexes.json`](firestore.indexes.json) and deploy its indexes for member, session, dose, alert, and Care Memory queries. See [`docs/FIREBASE_SETUP.md`](docs/FIREBASE_SETUP.md) for the full setup steps.
 
 ## Preserved prototype
 

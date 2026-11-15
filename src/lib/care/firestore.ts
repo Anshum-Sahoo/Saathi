@@ -1,5 +1,5 @@
 import "server-only";
-import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore, type Timestamp } from "firebase-admin/firestore";
 import type { AuthContext } from "@/lib/auth/sessions";
 import { ApiError } from "@/lib/server/http";
 

@@ -14,7 +14,7 @@ export const GET = apiRoute(async (request) => {
   const visible = context.member.role === "caregiver" || context.member.role === "elder"
     ? rows
     : context.member.role === "family"
-      ? rows.filter((row) => row.role === "elder" || row.role === "caregiver" || row.id === context.memberId)
+      ? rows.filter((row) => row.role === "elder" || row.role === "caregiver" || row.id === context.memberId || (context.member.permissions.editAppointments && row.role === "family"))
       : rows.filter((row) => row.role === "elder" || row.id === context.memberId);
   return Response.json({ members: visible.map(({ id, displayName, role, tier, permissions, createdAt }) => ({
     id, displayName, role, tier,

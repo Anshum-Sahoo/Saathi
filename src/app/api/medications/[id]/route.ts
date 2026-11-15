@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export const PATCH = apiRoute(async (request, context: RouteContext) => {
+export const PATCH = apiRoute(async (request: Request, context: RouteContext) => {
   requireOrigin(request);
   const auth = await requireAction(request, "editMedications");
   ensureActiveCircle(auth);
@@ -29,7 +29,7 @@ export const PATCH = apiRoute(async (request, context: RouteContext) => {
     if (!snapshot.exists || current?.circleId !== auth.circleId) throw new ApiError(404, "NOT_FOUND", "This medicine could not be found.");
     if (current.status !== "active") throw new ApiError(409, "INVALID_STATE", "Only an active medicine can be edited.");
     const updated = { ...current, ...input, id };
-    if (updated.endDate && updated.endDate < updated.startDate) throw new ApiError(400, "VALIDATION_ERROR", "End date must be on or after the start date.");
+    if (updated.startDate && updated.endDate && updated.endDate < updated.startDate) throw new ApiError(400, "VALIDATION_ERROR", "End date must be on or after the start date.");
     const now = new Date();
     const futureQuery = db.collection("doses").where("circleId", "==", auth.circleId).where("medicationId", "==", id).where("scheduledAt", ">=", Timestamp.fromDate(now));
     const upcoming = await transaction.get(futureQuery);

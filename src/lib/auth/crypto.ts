@@ -1,8 +1,15 @@
 import { createHmac, createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
 
-const scrypt = promisify(scryptCallback);
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+function deriveScrypt(input: Buffer, salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scryptCallback(input, salt, 32, { N: 16384, r: 8, p: 5, maxmem: 128 * 1024 * 1024 }, (error, key) => {
+      if (error) reject(error);
+      else resolve(key);
+    });
+  });
+}
 
 export function randomToken(): string {
   return randomBytes(32).toString("base64url");
@@ -35,7 +42,7 @@ export async function hashPin(pin: string, pepper = process.env.ELDER_PIN_PEPPER
   if (!pepper) throw new Error("ELDER_PIN_PEPPER is not configured");
   const salt = randomBytes(16);
   const input = createHmac("sha256", pepper).update(pin).digest();
-  const derived = (await scrypt(input, salt, 32, { N: 16384, r: 8, p: 5, maxmem: 128 * 1024 * 1024 })) as Buffer;
+  const derived = await deriveScrypt(input, salt);
   return `scrypt$N=16384,r=8,p=5$${salt.toString("hex")}$${derived.toString("hex")}`;
 }
 
@@ -44,7 +51,7 @@ export async function verifyPin(pin: string, encoded: string, pepper = process.e
   const [, parameters, saltHex, hashHex] = encoded.split("$");
   if (parameters !== "N=16384,r=8,p=5" || !/^[a-f0-9]{32}$/.test(saltHex ?? "") || !/^[a-f0-9]{64}$/.test(hashHex ?? "")) return false;
   const input = createHmac("sha256", pepper).update(pin).digest();
-  const derived = (await scrypt(input, Buffer.from(saltHex, "hex"), 32, { N: 16384, r: 8, p: 5, maxmem: 128 * 1024 * 1024 })) as Buffer;
+  const derived = await deriveScrypt(input, Buffer.from(saltHex, "hex"));
   return timingSafeEqual(derived, Buffer.from(hashHex, "hex"));
 }
 

@@ -30,11 +30,11 @@ export const POST = apiRoute(async (request) => {
 
   const auth = getAdminAuth();
   if (!auth) throw new ApiError(503, "SERVICE_UNAVAILABLE", "Authentication is not configured yet.");
+  const db = requireFirestore();
+  await enforceIpLimit(request, db, "circle-create", 5, 60 * 60_000);
   let identity;
   try { identity = await verifyFirebaseIdToken(auth, getBearerToken(request)); }
   catch { throw new ApiError(401, "UNAUTHENTICATED", "Sign in to continue."); }
-  const db = requireFirestore();
-  await enforceIpLimit(request, db, "circle-create", 5, 60 * 60_000);
   const circleRef = db.collection("circles").doc();
   const caregiverRef = db.collection("members").doc(memberIdForFirebaseUid(identity.uid));
   const elderRef = db.collection("members").doc();

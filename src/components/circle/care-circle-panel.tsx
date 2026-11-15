@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cookieRequest } from "@/lib/firebase/client-auth";
 
 type Member = { id: string; displayName: string; role: string; tier: string; permissions?: Record<string, boolean> };
@@ -17,6 +18,7 @@ const permissionNames: Record<string, string> = {
 };
 
 export function CareCirclePanel({ setup = false }: { setup?: boolean }) {
+  const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
@@ -52,7 +54,7 @@ export function CareCirclePanel({ setup = false }: { setup?: boolean }) {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const initial = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(initial); }, [load]);
 
   async function perform(action: () => Promise<unknown>) {
     setWorking(true);
@@ -96,7 +98,7 @@ export function CareCirclePanel({ setup = false }: { setup?: boolean }) {
 
   async function signOut() {
     setWorking(true);
-    try { await cookieRequest("/api/auth/logout", "POST", {}); window.location.assign("/login"); }
+    try { await cookieRequest("/api/auth/logout", "POST", {}); router.push("/login"); }
     catch (signOutError) { setError(signOutError instanceof Error ? signOutError.message : "Sign out could not be completed."); setWorking(false); }
   }
 

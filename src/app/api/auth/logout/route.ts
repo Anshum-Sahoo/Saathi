@@ -1,6 +1,6 @@
 import { requireContext } from "@/lib/auth/guard";
 import { clearSessionCookie } from "@/lib/auth/sessions";
-import { apiRoute, requireOrigin } from "@/lib/server/http";
+import { ApiError, apiRoute, requireOrigin } from "@/lib/server/http";
 import { requireFirestore } from "@/lib/server/firestore";
 import { actorFor } from "@/lib/server/audit";
 import { Timestamp } from "firebase-admin/firestore";
@@ -10,7 +10,15 @@ export const dynamic = "force-dynamic";
 
 export const POST = apiRoute(async (request) => {
   requireOrigin(request);
-  const context = await requireContext(request);
+  let context;
+  try {
+    context = await requireContext(request);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) throw error;
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    clearSessionCookie(headers);
+    return Response.json({ ok: true }, { headers });
+  }
   const db = requireFirestore();
   const sessionRef = db.collection("sessions").doc(context.sessionId);
   const eventRef = db.collection("events").doc();

@@ -2,6 +2,12 @@
 
 type FirebaseAuthResponse = { idToken: string };
 
+function messageFrom(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null || !("error" in payload)) return undefined;
+  const error = payload.error;
+  return typeof error === "object" && error !== null && "message" in error && typeof error.message === "string" ? error.message : undefined;
+}
+
 const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
 
 async function authenticate(method: "accounts:signUp" | "accounts:signInWithPassword", email: string, password: string): Promise<string> {
@@ -42,7 +48,7 @@ export async function saathiRequest<T>(path: string, idToken: string, body?: unk
     cache: "no-store",
   });
   const payload = await response.json() as T | { error?: { message?: string } };
-  if (!response.ok) throw new Error("error" in payload ? payload.error?.message ?? "That request could not be completed." : "That request could not be completed.");
+  if (!response.ok) throw new Error(messageFrom(payload) ?? "That request could not be completed.");
   return payload as T;
 }
 
@@ -53,7 +59,7 @@ export async function publicRequest<T>(path: string, body: unknown, idToken?: st
     body: JSON.stringify(body), cache: "no-store",
   });
   const payload = await response.json() as T | { error?: { message?: string } };
-  if (!response.ok) throw new Error("error" in payload ? payload.error?.message ?? "That request could not be completed." : "That request could not be completed.");
+  if (!response.ok) throw new Error(messageFrom(payload) ?? "That request could not be completed.");
   return payload as T;
 }
 
@@ -65,6 +71,6 @@ export async function cookieRequest<T>(path: string, method: "GET" | "POST" | "P
     cache: "no-store",
   });
   const payload = await response.json() as T | { error?: { message?: string } };
-  if (!response.ok) throw new Error("error" in payload ? payload.error?.message ?? "That request could not be completed." : "That request could not be completed.");
+  if (!response.ok) throw new Error(messageFrom(payload) ?? "That request could not be completed.");
   return payload as T;
 }
